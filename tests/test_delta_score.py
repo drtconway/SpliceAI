@@ -1,6 +1,6 @@
 from collections import namedtuple
 import unittest
-from pkg_resources import resource_filename
+from pathlib import Path
 from spliceai.utils import Annotator, get_delta_scores
 
 
@@ -12,8 +12,9 @@ class TestDeltaScore(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        fasta_path = resource_filename(__name__, 'data/test.fa')
-        fasta_without_prefix_path = resource_filename(__name__, 'data/test_without_prefix.fa')
+        data_dir = Path(__file__).parent / 'data'
+        fasta_path = str(data_dir / 'test.fa')
+        fasta_without_prefix_path = str(data_dir / 'test_without_prefix.fa')
         cls.ann = Annotator(fasta_path, 'grch37')
         cls.ann_without_prefix = Annotator(fasta_without_prefix_path, 'grch37')
 

@@ -1,4 +1,4 @@
-from pkg_resources import resource_filename
+from importlib.resources import files
 import pandas as pd
 import numpy as np
 from pyfastx import Fasta
@@ -42,9 +42,9 @@ class Annotator:
     def __init__(self, ref_fasta, annotations):
 
         if annotations == 'grch37':
-            annotations = resource_filename(__name__, 'annotations/grch37.txt')
+            annotations = str(files('spliceai') / 'annotations/grch37.txt')
         elif annotations == 'grch38':
-            annotations = resource_filename(__name__, 'annotations/grch38.txt')
+            annotations = str(files('spliceai') / 'annotations/grch38.txt')
 
         try:
             df = pd.read_csv(annotations, sep='\t', dtype={'CHROM': object})
@@ -71,7 +71,7 @@ class Annotator:
             exit()
 
         paths = ('models/spliceai{}.h5'.format(x) for x in range(1, 6))
-        self.models = [load_model(resource_filename(__name__, x)) for x in paths]
+        self.models = [load_model(str(files('spliceai') / x)) for x in paths]
 
     def get_name_and_strand(self, chrom, pos):
 
