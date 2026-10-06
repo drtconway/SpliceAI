@@ -242,6 +242,8 @@ def get_delta_scores(record, ann, dist_var, mask):
 
     (genes, strands, idxs) = ann.get_name_and_strand(record.chrom, record.pos)
     if len(idxs) == 0:
+        logging.info('{}:{} {}>{} transcripts=0 predictions=0'.format(
+            record.chrom, record.pos, record.ref, ','.join(map(str, record.alts))))
         return scores
 
     chrom = normalise_chrom(record.chrom, list(ann.ref_fasta.keys())[0])
@@ -461,6 +463,11 @@ def get_delta_scores(record, ann, dist_var, mask):
             #    print(f"Variant: {record.chrom}-{record.pos}-{record.ref}-{record.alts[j]}, strand: {strands[i]}")
             #    pprint("-".join([scores[-1]["SCORES_FOR_INSERTED_BASES"][0][key] for key in ("chrom", "pos", "ref", "alt")]))
             #    print(tabulate.tabulate(pd.DataFrame(scores[-1]["SCORES_FOR_INSERTED_BASES"]), headers="keys", tablefmt="pretty"))
+
+    # predictions is how many transcript/allele pairs ran the models; the rest reused a cached result
+    logging.info('{}:{} {}>{} transcripts={} predictions={} cached={}'.format(
+        record.chrom, record.pos, record.ref, ','.join(map(str, record.alts)),
+        len(idxs), model_prediction_count, total_count - model_prediction_count))
 
     return scores
 

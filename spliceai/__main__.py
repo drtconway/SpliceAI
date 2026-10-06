@@ -32,6 +32,8 @@ def get_options():
                         type=int, choices=[0, 1],
                         help='mask scores representing annotated acceptor/donor gain and '
                              'unannotated acceptor/donor loss, defaults to 0')
+    parser.add_argument('-v', action='store_true',
+                        help='log each variant as it is scored, with the number of model predictions it needed')
     args = parser.parse_args()
 
     return args
@@ -41,9 +43,11 @@ def main():
 
     args = get_options()
 
+    logging.basicConfig(level=logging.INFO if args.v else logging.WARNING)
+
     if None in [args.I, args.O, args.D, args.M]:
         logging.error('Usage: spliceai [-h] [-I [input]] [-O [output]] -R reference -A annotation '
-                      '[-D [distance]] [-M [mask]]')
+                      '[-D [distance]] [-M [mask]] [-v]')
         exit()
 
     try:
