@@ -43,7 +43,8 @@ def main():
 
     args = get_options()
 
-    logging.basicConfig(level=logging.INFO if args.v else logging.WARNING)
+    logging.basicConfig(level=logging.INFO if args.v else logging.WARNING,
+                        format='%(asctime)s %(levelname)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     if None in [args.I, args.O, args.D, args.M]:
         logging.error('Usage: spliceai [-h] [-I [input]] [-O [output]] -R reference -A annotation '
