@@ -2,6 +2,7 @@ from importlib.resources import files
 import pandas as pd
 import numpy as np
 from pyfastx import Fasta
+import keras
 from keras.models import load_model
 import logging
 from sys import exit
@@ -71,7 +72,23 @@ class Annotator:
             exit()
 
         paths = ('models/spliceai{}.h5'.format(x) for x in range(1, 6))
-        self.models = [load_model(str(files('spliceai') / x)) for x in paths]
+        # compile=False: the models are only used for prediction, and compiling warns that they have no training config
+        self.models = [load_model(str(files('spliceai') / x), compile=False) for x in paths]
+
+        # One model that runs all five and returns their mean, so each prediction is a single call. The five
+        # share a saved name, which a combined model doesn't allow.
+        x = keras.Input(shape=(None, 4))
+        outputs = []
+        for i, model in enumerate(self.models, 1):
+            model.name = 'spliceai{}'.format(i)
+            y = model(x)
+            outputs.append(y[0] if isinstance(y, list) else y)
+        self.ensemble = keras.Model(x, keras.layers.Average()(outputs))
+
+    def predict(self, x):
+        # predict_on_batch rather than predict: predict builds a new input pipeline on every call, which
+        # costs more than the model itself does on a GPU
+        return self.ensemble.predict_on_batch(x)
 
     def get_name_and_strand(self, chrom, pos):
 
@@ -130,8 +147,13 @@ def get_delta_scores_for_transcript(x_ref, x_alt, ref, alt, strand, cov, ann):
         x_ref = x_ref[:, ::-1, ::-1]
         x_alt = x_alt[:, ::-1, ::-1]
 
-    y_ref = np.mean([ann.models[m].predict(x_ref, verbose=0) for m in range(5)], axis=0)
-    y_alt = np.mean([ann.models[m].predict(x_alt, verbose=0) for m in range(5)], axis=0)
+    if x_ref.shape == x_alt.shape:
+        # same length (SNV or MNP): predict REF and ALT together as a batch of two
+        y = ann.predict(np.concatenate([x_ref, x_alt]))
+        y_ref, y_alt = y[:1], y[1:]
+    else:
+        y_ref = ann.predict(x_ref)
+        y_alt = ann.predict(x_alt)
 
     if strand == '-':
         y_ref = y_ref[:, ::-1]
@@ -152,7 +174,7 @@ def get_ref_scores_for_transcript(x_ref, strand, ann):
     if strand == '-':
         x_ref = x_ref[:, ::-1, ::-1]
 
-    y_ref = np.mean([ann.models[m].predict(x_ref, verbose=0) for m in range(5)], axis=0)
+    y_ref = ann.predict(x_ref)
 
     if strand == '-':
         y_ref = y_ref[:, ::-1]
